@@ -25,8 +25,8 @@ from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 #config.read(os.path.join(os.path.dirname(__file__),'config.cfg'))
 input_image_file_ext = ".png"
 output_image_file_ext = ".tif"
-source_folder = "/data/data/projects/thermal-image-processing/thermalimageprocessing/thermal_data"
-dest_folder = "/data/data/projects/thermal-image-processing/thermalimageprocessing/thermal_data_processing"
+source_folder = os.environ.get('thermal_source_folder') #"/data/data/projects/thermal-image-processing/thermalimageprocessing/thermal_data"
+dest_folder = os.environ.get('thermal_destination_folder') #"/data/data/projects/thermal-image-processing/thermalimageprocessing/thermal_data_processing"
 postgis_table = os.environ.get('general_postgis_table') #config.get('general', 'postgis_table')
 azure_conn_string = os.environ.get('general_azure_conn_string') # config.get('general', 'azure_conn_string') 
 container_name = os.environ.get('general_container_name') # config.get('general', 'container_name')

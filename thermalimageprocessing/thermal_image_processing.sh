@@ -25,6 +25,10 @@ printf "\ndirname: $dirname" >> ./logs/log.txt
 sleep 10
 echo "STARTING"
 echo $filename
+
+# Create directory to prevent error if it does not exist
+mkdir -p $folder_path/thermal_data_processing/
+
 cp $filename   $folder_path/thermal_data_processing/$basename_filename
 mv $filename   $uploads_folder_path/$basename_filename
 cd $folder_path/thermal_data_processing/

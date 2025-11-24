@@ -1,5 +1,3 @@
-
-
 # Third-Party
 import os
 import logging
@@ -21,7 +19,7 @@ class ImportsProcessor():
         
         current_datetime = datetime.now().astimezone()
         seen_datetime = datetime.strftime(current_datetime, '%Y-%m-%d %H:%M:%S')
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(settings.__file__))))
+        BASE_DIR = settings.BASE_DIR
         try:
             if (not os.path.isabs(self.path)):
                 self.path = os.path.join(BASE_DIR, self.path)

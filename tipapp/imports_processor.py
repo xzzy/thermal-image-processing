@@ -41,8 +41,12 @@ class ImportsProcessor():
                         logger.info("Destination folder "+str(dest_path))
                         result = subprocess.run(["/bin/bash", script_path, entry.path, dest_path], capture_output=True, text=True, check=True)
                         logger.info(result)
+                    except subprocess.CalledProcessError as e:
+                        # Capture specific error output from the subprocess
+                        logger.error(f"Command failed with return code {e.returncode}")
+                        logger.error(f"Stdout: {e.stdout}")
+                        logger.error(f"Stderr: {e.stderr}") 
                     except Exception as e:
-                        logger.info (e)
-                        logger.info (e.output)
+                        logger.error(f"Unexpected error: {e}")
         except Exception as e:
             logger.error(e)

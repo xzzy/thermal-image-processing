@@ -267,10 +267,13 @@ def send_notification_emails(flight_name, success, msg, districts=[]):
                 HtmlBody='Automated email advising that a new dataset,' + flight_name + ', has arrived and has been successfully processed; it can be viewed in SSS.<br>' + msg)
 
 def publish_image_on_geoserver(flight_name, image_name=None):
+    print('publishing to geoserver...')
     flight_timestamp = flight_name.replace("FireFlight_", "")
     headers = {'Content-type': 'application/xml'}
     file_url_base = os.environ.get('general_file_url_base', 'file:///rclone-mounts/thermalimaging-flightmosaics/')
     gs_url_base = os.environ.get('general_gs_url_base','https://hotspots.dbca.wa.gov.au/geoserver/rest/workspaces/hotspots/coveragestores/')
+    print('gs_url_base: ')
+    print(gs_url_base)
     if image_name is None:
         gs_layer_url = gs_url_base + flight_name + '.tif/coverages'
     else:
@@ -288,8 +291,12 @@ def publish_image_on_geoserver(flight_name, image_name=None):
     else:
         layer_data = '<coverage><name>{flight_timestamp}_img_{image}</name><title>{flight_timestamp}_img_{image}</title><srs>EPSG:28350</srs></coverage>'.format(flight_timestamp=flight_timestamp, image=image_name[:-4])
     response = requests.post(gs_layer_url, headers=headers, data=layer_data, auth=(user, gs_pwd))
-    #if response.status_code == 201:
-    #   print('Great success!')
+    if response.status_code == 201:
+        print('Great success!')
+    else:
+        print('Error Geoserver')
+        print(response.status_code)
+        print(response.text)
 
 
 ##############################################################################

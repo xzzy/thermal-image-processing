@@ -12,5 +12,6 @@ data_storage/
 thermal_downloads/
 thermal_data_processing/
 thermal_files_uploaded/
+logs/
 *.log
 log.txt

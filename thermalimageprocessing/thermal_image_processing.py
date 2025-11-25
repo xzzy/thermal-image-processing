@@ -33,7 +33,7 @@ source_folder = os.environ.get('thermal_source_folder') #"/data/data/projects/th
 dest_folder = os.environ.get('thermal_destination_folder') #"/data/data/projects/thermal-image-processing/thermalimageprocessing/thermal_data_processing"
 postgis_table = decouple.config("general_postgis_table", default="NO DATABASE URL FOUND FOR THERMAL IMAGE PROCESSING."),
 logger.debug(f'postgis_table: {postgis_table}')
-# azure_conn_string = os.environ.get('general_azure_conn_string') # config.get('general', 'azure_conn_string') 
+azure_conn_string = os.environ.get('general_azure_conn_string') # config.get('general', 'azure_conn_string') 
 container_name = os.environ.get('general_container_name') # config.get('general', 'container_name')
 # blob_service_client = BlobServiceClient.from_connection_string(azure_conn_string)
 districts_dataset_name = os.environ.get('general_districts_dataset_name') # config.get('general', 'districts_dataset_name')

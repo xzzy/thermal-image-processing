@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 gdal.UseExceptions()
 # Disable disk space check to prevent "ERROR 3" (Not recommended for production but fixes the immediate issue)
 gdal.SetConfigOption('CHECK_DISK_FREE_SPACE', 'FALSE')
+# FIX: Automatically close open polygons in KML files to prevent "LinearRing do not form a closed linestring" error
+gdal.SetConfigOption('OGR_GEOMETRY_ACCEPT_UNCLOSED_RING', 'YES')
 
 # print(os.environ.get('KEY_THAT_MIGHT_EXIST', default_value))
 # os.environ.get('') #

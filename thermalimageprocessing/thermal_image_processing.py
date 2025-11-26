@@ -138,11 +138,30 @@ def translate_png2tif(input_png, short_file):
 
 def push_to_azure(img_file, blob_name):
     try:
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        with open(img_file, "rb") as data:
-            blob_client.upload_blob(data)
+        # blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        # with open(img_file, "rb") as data:
+        #     blob_client.upload_blob(data)
+
+        # Define the target base path
+        mount_base_path = "/rclone-mounts/thermalimaging-flightmosaics"
+        
+        # Construct the full destination path
+        # blob_name is used here as the relative path (e.g., 'FlightName.tif' or 'FlightName_images/xxx.tif')
+        dest_path = os.path.join(mount_base_path, blob_name)
+        
+        # Extract the directory path
+        dest_dir = os.path.dirname(dest_path)
+        
+        # Create the directory if it does not exist
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir, exist_ok=True)
+        
+        # Copy the image file to the destination
+        shutil.copy2(img_file, dest_path)
+        
     except Exception as e:
-        print(str(e))
+        print(f"Failed to copy file to rclone mount: {str(e)}")
+
 
 def create_mosaic_footprint_as_line(files, raw_img_folder, flight_timestamp, image, engine, footprint):
     bboxes = create_img_bounding_boxes(files, raw_img_folder)

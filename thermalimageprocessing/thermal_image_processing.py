@@ -166,22 +166,24 @@ def translate_png2tif(input_png, short_file):
     output_tif = input_png.replace(".png", ".tif")
     tif_filename = short_file.replace(".png", ".tif")
     gdal.Translate(output_tif, input_png, outputSRS="EPSG:28350")
-    blob_name = flight_name + "_images/" + tif_filename
-    push_to_azure(output_tif, blob_name)
+    relative_path = flight_name + "_images/" + tif_filename
+    copy_to_geoserver_storage(output_tif, relative_path)
     #publish_image_on_geoserver(flight_name, tif_filename)
 
-def push_to_azure(img_file, blob_name):
+def copy_to_geoserver_storage(source_file, relative_dest_path):
+    """
+    Copies the processed image file to the shared storage mount for GeoServer.
+    """
     try:
-        # blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-        # with open(img_file, "rb") as data:
-        #     blob_client.upload_blob(data)
+        # Log start of operation
+        logger.info(f"Copying file to GeoServer storage. Source: {source_file}, Dest Relative: {relative_dest_path}")
 
         # Define the target base path
         mount_base_path = "/rclone-mounts/thermalimaging-flightmosaics"
         
         # Construct the full destination path
         # blob_name is used here as the relative path (e.g., 'FlightName.tif' or 'FlightName_images/xxx.tif')
-        dest_path = os.path.join(mount_base_path, blob_name)
+        dest_path = os.path.join(mount_base_path, relative_dest_path)
         
         # Extract the directory path
         dest_dir = os.path.dirname(dest_path)
@@ -191,7 +193,7 @@ def push_to_azure(img_file, blob_name):
             os.makedirs(dest_dir, exist_ok=True)
         
         # Copy the image file to the destination
-        shutil.copy2(img_file, dest_path)
+        shutil.copy2(source_file, dest_path)
         
         # FIX: Change file permissions to 644 (Owner: RW, Group: R, Others: R)
         # This ensures the GeoServer container can read the file.
@@ -465,10 +467,7 @@ else:
         logger.info(">>> Step 2/8: Copying Mosaic to Storage...")
         print(">>> Step 2/8: Copying Mosaic to Storage...")
 
-        push_to_azure(mosaic_image, flight_name + ".tif")
-        msg += "\nMosaic pushed to Azure OK"
-        print("Mosaic pushed to Azure OK")
-        mosaic_pushed_to_azure = True
+        copy_to_geoserver_storage(mosaic_image, flight_name + ".tif")
     except Exception as e:
         error_message = f"Mosaic copy/upload failed: {e}"
         msg += "\n" + error_message

@@ -17,8 +17,6 @@ class ImportsProcessor():
     def process_files(self):
         logger.info(f"Processing pending Imports from : {self.path}")
         
-        current_datetime = datetime.now().astimezone()
-        seen_datetime = datetime.strftime(current_datetime, '%Y-%m-%d %H:%M:%S')
         BASE_DIR = settings.BASE_DIR
         try:
             if (not os.path.isabs(self.path)):
@@ -26,11 +24,9 @@ class ImportsProcessor():
                 
             for entry in os.scandir(self.path):
                 filename = entry.name
-                current_datetime = datetime.now().astimezone()
-                seen_datetime = datetime.strftime(current_datetime, '%Y-%m-%d %H:%M:%S')
 
                 # log watch
-                logger.info (seen_datetime+" File to be processed: "+ str(entry.path))   
+                logger.info ("File to be processed: " + str(entry.path))   
 
                 # Case-insensitive check
                 lower_filename = filename.lower()

@@ -150,6 +150,9 @@ def merge(files):
             options=["-co", "COMPRESS=DEFLATE"] # Compresses the output to save disk space
         )
     except Exception as e:
+        # Log the error with stack trace for debugging
+        logger.error(f"Merge failed: {e}", exc_info=True)
+        # Also print to stdout so it appears in the subprocess runner's log
         print(f"Merge failed: {e}")
         raise
 
@@ -195,7 +198,11 @@ def push_to_azure(img_file, blob_name):
         os.chmod(dest_path, 0o644)
         
     except Exception as e:
-        print(f"Failed to copy file to rclone mount: {str(e)}")
+        error_msg = f"Failed to copy file to rclone mount: {e}"
+        # Log the error with full stack trace
+        logger.error(error_msg, exc_info=True)
+        # Print to stdout so ImportsProcessor can also capture it
+        print(error_msg)
 
 
 def create_mosaic_footprint_as_line(files, raw_img_folder, flight_timestamp, image, engine, footprint):
@@ -324,36 +331,64 @@ def send_notification_emails(flight_name, success, msg, districts=[]):
                 HtmlBody='Automated email advising that a new dataset,' + flight_name + ', has arrived and has been successfully processed; it can be viewed in SSS.<br>' + msg)
 
 def publish_image_on_geoserver(flight_name, image_name=None):
-    print('publishing to geoserver...')
+    logger.info(f'Publishing to GeoServer... Flight: {flight_name}, Image: {image_name}')
+
     flight_timestamp = flight_name.replace("FireFlight_", "")
     headers = {'Content-type': 'application/xml'}
     file_url_base = os.environ.get('general_file_url_base', 'file:///rclone-mounts/thermalimaging-flightmosaics/')
     gs_url_base = os.environ.get('general_gs_url_base','https://hotspots.dbca.wa.gov.au/geoserver/rest/workspaces/hotspots/coveragestores/')
-    print('gs_url_base: ')
-    print(gs_url_base)
+
+    logger.info(f'gs_url_base: {gs_url_base}')
+
     if image_name is None:
         gs_layer_url = gs_url_base + flight_name + '.tif/coverages'
     else:
         gs_layer_url = gs_url_base + flight_timestamp + '_img_' + image_name + '/coverages'
+
     # Create data store on geoserver
     if image_name is None:
         store_data = '<coverageStore><name>{flight_name}.tif</name><workspace>hotspots</workspace><enabled>true</enabled><type>GeoTIFF</type><url>{file_url_base}{flight_name}.tif</url></coverageStore>'.format(flight_name=flight_name, file_url_base=file_url_base)
     else:
         store_data = '<coverageStore><name>{flight_timestamp}_img_{image}</name><workspace>hotspots</workspace><enabled>true</enabled><type>GeoTIFF</type><url>{file_url_base}{flight_name}_images/{image_name}</url></coverageStore>'.format(flight_name=flight_name, flight_timestamp=flight_timestamp, file_url_base=file_url_base, image=image_name, image_name=image_name)
-    response = requests.post(gs_url_base, headers=headers, data=store_data, auth=(user, gs_pwd))
-    #if response.status_code == 201:
-    #   print('Great success!') Create mosaic image layer
+    
+    # --- Create Coverage Store ---
+    try:
+        response = requests.post(gs_url_base, headers=headers, data=store_data, auth=(user, gs_pwd))
+        if response.status_code == 201:
+            logger.info("Coverage Store created successfully.")
+        elif response.status_code == 500 and "already exists" in response.text:
+            # Not strictly an error if we are updating or reprocessing
+            logger.info(f"Coverage Store already exists. Status: {response.status_code}")
+        else:
+            logger.error(f"Failed to create Coverage Store. Status: {response.status_code}, Response: {response.text}")
+            print(f"Error creating Store: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Exception during Coverage Store creation: {e}", exc_info=True)
+        print(f"Exception: {e}")
+
     if image_name is None:
         layer_data = '<coverage><name>{flight_name}</name><title>{flight_name}</title><srs>EPSG:28350</srs></coverage>'.format(flight_name=flight_name)
     else:
         layer_data = '<coverage><name>{flight_timestamp}_img_{image}</name><title>{flight_timestamp}_img_{image}</title><srs>EPSG:28350</srs></coverage>'.format(flight_timestamp=flight_timestamp, image=image_name[:-4])
-    response = requests.post(gs_layer_url, headers=headers, data=layer_data, auth=(user, gs_pwd))
-    if response.status_code == 201:
-        print('Great success!')
-    else:
-        print('Error Geoserver')
-        print(response.status_code)
-        print(response.text)
+
+    # --- Create/Publish Layer ---
+    try:
+        response = requests.post(gs_layer_url, headers=headers, data=layer_data, auth=(user, gs_pwd))
+
+        if response.status_code == 201:
+            success_message = 'Great success! Layer published on GeoServer.'
+            logger.info(success_message)
+            print(success_message)
+        else:
+            error_msg = f"Error GeoServer Layer Publish. Status: {response.status_code}"
+            logger.error(error_msg)
+            logger.error(f"Response: {response.text}")
+            print(error_msg)
+            print(f"Response: {response.text}")
+    except Exception as e:
+        error_msg = f"Exception during Layer publication: {e}", exc_info=True
+        logger.error(error_msg)
+        print(error_msg)
 
 
 ##############################################################################
@@ -475,9 +510,12 @@ else:
                 translate_png2tif(full_path, img)
             msg += "\nProduction of tif images OK"
             print("Production of tif images OK")
-    except:
+    except Exception as e:
         msg += "\nProduction of tif images failed"
         print("Production of tif images failed")
+        error_detail = f"Production of tif images failed: {e}"
+        print(error_detail)
+        logger.error(error_detail) 
 
     # A cron job runs in Rancher every 5 min to update the file storage for geoserver; also allow extra time for processing - 10 min; later reduced to 1min
     time.sleep(60)
@@ -496,7 +534,6 @@ else:
     except Exception as e:
         success = False
         msg += "\nMosaic publishing on geoserver failed"
-        # FIX: Print detailed error message
         error_detail = f"Mosaic publishing on geoserver failed: {e}"
         print(error_detail)
         logger.error(error_detail) 

@@ -126,17 +126,6 @@ def get_exclude_first(files):
 
 def merge(files):
     print('in merge()...')
-
-    # # Merges pngs and saves output to output_image specified above
-    # gdal_merge_args = ["", "-o", mosaic_image, "-of", "GTiff", "-n", "0", "-a_nodata", "0"]
-    # for file in files:
-    #     gdal_merge_args.append(file)
-    # gdal_merge.main(gdal_merge_args)
-    # gdal_edit_args = ["", "-a_srs", "EPSG:28350", mosaic_image]
-    # #gdal_edit_args = ["", "-a_srs", "EPSG:4326", mosaic_image]
-    # gdal_edit.main(gdal_edit_args) # creates output image in 'Processed' folder
-    # #push_to_azure(mosaic_image, flight_name + ".tif")
-
     # Merges PNGs and saves the output to the specified mosaic_image path.
     # Using gdal.Warp instead of gdal_merge.main ensures better compatibility 
     # between different GDAL versions (e.g., 3.0 vs 3.8) and offers better performance.
@@ -450,8 +439,9 @@ else:
         print(">>> Step 1/8: Creating Mosaic Image...")
 
         merge(files)
-        msg += "\nMosaic produced on kens-therm-001 OK"
-        print("Mosaic produced on kens-therm-001 OK")
+        msg += "\nMosaic produced OK"
+        print("Mosaic produced OK")
+        logger.info("Mosaic produced OK")
     except Exception as e:
         success = False
         error_message = f"Mosaic production failed: {e}"
@@ -460,14 +450,18 @@ else:
         logger.error(error_message, exc_info=True)
 
     time.sleep(60)
-    mosaic_pushed_to_azure = False
+    mosaic_stored_ok = False
 
     try:
         # --- Log: File Copy/Upload ---
-        logger.info(">>> Step 2/8: Copying Mosaic to Storage...")
-        print(">>> Step 2/8: Copying Mosaic to Storage...")
+        logger.info(">>> Step 2/8: Copying Mosaic to GeoServer Storage...")
+        print(">>> Step 2/8: Copying Mosaic to GeoServer Storage...")
 
         copy_to_geoserver_storage(mosaic_image, flight_name + ".tif")
+        msg += "\nMosaic pushed to GeoServer storage OK"
+        print("Mosaic pushed to GeoServer storage OK")
+        logger.info("Mosaic pushed to GeoServer storage OK") # Add log
+        mosaic_stored_ok = True
     except Exception as e:
         error_message = f"Mosaic copy/upload failed: {e}"
         msg += "\n" + error_message
@@ -481,8 +475,10 @@ else:
 
         create_mosaic_footprint_as_line(files, raw_img_folder, flight_timestamp, mosaic_image, engine, footprint)
         # NB this populates footprint.as_line and footprint.as_poly
-        msg += "\nFootprint produced and pushed to PostGIS OK"
-        print("Footprint produced and pushed to PostGIS OK")
+        success_msg = "Footprint produced and pushed to PostGIS OK"
+        msg += "\n" + success_msg
+        print(success_msg)
+        logger.info(success_msg) 
     except Exception as e:
         success = False
         msg += "\nFootprint production or push to PostGIS failed"
@@ -496,8 +492,10 @@ else:
         print(">>> Step 4/8: Checking Districts...")
 
         get_footprint_districts(footprint)
-        msg += "\nFootprint lies in district(s) " + str(footprint.districts)
-        print("Footprint lies in district(s) " + str(footprint.districts))
+        success_msg = "Footprint lies in district(s) " + str(footprint.districts)
+        msg += "\n" + success_msg
+        print(success_msg)
+        logger.info(success_msg)
     except Exception as e:
         success = False
         error_message = f"Footprint district(s) not found: {e}"
@@ -511,14 +509,16 @@ else:
         print(">>> Step 5/8: Creating Image Bounding Boxes...")
 
         bboxes = create_img_bounding_boxes(files, raw_img_folder)
-        msg += "\nBounding box creation for images OK"
-        print("Bounding box creation for images OK")
+        success_msg = "Bounding box creation for images OK"
+        msg += "\n" + success_msg
+        print(success_msg)
+        logger.info(success_msg)
     except Exception as e:
-            success = False
-            error_message = f"Bounding box creation for images failed: {e}"
-            msg += "\n" + error_message
-            print(error_message)
-            logger.error(error_message, exc_info=True)
+        success = False
+        error_message = f"Bounding box creation for images failed: {e}"
+        msg += "\n" + error_message
+        print(error_message)
+        logger.error(error_message, exc_info=True)
 
     try:
         # --- Log: Hotspot Analysis ---
@@ -527,12 +527,16 @@ else:
 
         all_images_with_hotspots = create_boundaries_and_centroids(flight_timestamp, kml_boundaries_file, bboxes, engine) # e.g. = ['000039.png', '000040.png', ... , '000106.png']
         if all_images_with_hotspots == []:
-            msg += "\nNO HOTSPOTS FOUND!!!"
-            print("NO HOTSPOTS FOUND!!!")
+            success_msg = "NO HOTSPOTS FOUND!!!"
+            msg += "\n" + success_msg
+            print(success_msg)
+            logger.info(success_msg)
             #success = False
         else:
-            msg += "\nBoundaries and centroids creation and push to PostGIS OK"
-            print("Boundaries and centroids creation  and push to PostGIS OK")
+            success_msg = "Boundaries and centroids creation and push to PostGIS OK"
+            msg += "\n" + success_msg
+            print(success_msg)
+            logger.info(success_msg)
     except Exception as e:
             success = False
             error_message = f"Boundaries and centroids creation or push to PostGIS failed: {e}"
@@ -550,8 +554,10 @@ else:
             for img in all_images_with_hotspots:
                 full_path = os.path.join(raw_img_folder, img)
                 translate_png2tif(full_path, img)
-            msg += "\nProduction of tif images OK"
-            print("Production of tif images OK")
+            success_msg = "Production of tif images OK"
+            msg += "\n" + success_msg
+            print(success_msg)
+            logger.info(success_msg)
     except Exception as e:
         msg += "\nProduction of tif images failed"
         print("Production of tif images failed")
@@ -567,13 +573,18 @@ else:
         logger.info(">>> Step 8/8: Publishing to GeoServer...")
         print(">>> Step 8/8: Publishing to GeoServer...")
 
-        if mosaic_pushed_to_azure:
+        if mosaic_stored_ok:
             publish_image_on_geoserver(flight_name)
-            msg += "\nMosaic published on geoserver OK"
-            print("Mosaic published on geoserver OK")
+            success_msg = "Mosaic published on geoserver OK"
+            msg += "\n" + success_msg
+            print(success_msg)
+            logger.info(success_msg)
         else:
-            msg += "\nMosaic could not be published on geoserver!!!"
-            print("Mosaic could not be published on geoserver!!!")
+            error_message = "Mosaic could not be published on geoserver!!!"
+            msg += "\n" + error_message
+            print(error_message)
+            logger.info(error_message)
+
         for img in all_images_with_hotspots:
             img = img.replace(".png", ".tif")
             publish_image_on_geoserver(flight_name, img)

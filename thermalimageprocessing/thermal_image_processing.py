@@ -362,7 +362,7 @@ def create_boundaries_and_centroids(flight_timestamp, kml_boundaries_file, bboxe
         centroids.to_file(output_geopackage, layer='centroids', driver="GPKG")
         centroids.to_postgis("hotspot_centroids", engine, if_exists="append")
     except Exception as e:
-        print(e)
+        logger.error(f"An unexpected error occurred in create_boundaries_and_centroids: {e}", exc_info=True)
     finally:
         return sorted(all_images_with_hotspots)
 

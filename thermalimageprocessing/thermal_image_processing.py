@@ -174,16 +174,24 @@ def copy_to_geoserver_storage(source_file, relative_dest_path):
     Copies the processed image file to the shared storage mount for GeoServer.
     """
     try:
-        # Log start of operation
-        logger.info(f"Copying file to GeoServer storage. Source: {source_file}, Dest Relative: {relative_dest_path}")
-
         # Define the target base path
         mount_base_path = "/rclone-mounts/thermalimaging-flightmosaics"
         
         # Construct the full destination path
         # blob_name is used here as the relative path (e.g., 'FlightName.tif' or 'FlightName_images/xxx.tif')
         dest_path = os.path.join(mount_base_path, relative_dest_path)
-        
+
+        try:
+            file_size = os.path.getsize(source_file)
+            file_size_mb = file_size / (1024 * 1024) # Convert to MB
+            logger.info(f"Copying file ({file_size_mb:.2f} MB) to GeoServer storage...")
+        except OSError:
+            # Handle cases where file might not exist yet (though unlikely here)
+            logger.warning(f"Copying file to GeoServer storage (Size unknown).")
+
+        logger.info(f"Source: {source_file}")
+        logger.info(f"Destination: {dest_path}")
+
         # Extract the directory path
         dest_dir = os.path.dirname(dest_path)
         
@@ -193,10 +201,8 @@ def copy_to_geoserver_storage(source_file, relative_dest_path):
         
         # Copy the image file to the destination
         shutil.copyfile(source_file, dest_path)
-        
-        # FIX: Change file permissions to 644 (Owner: RW, Group: R, Others: R)
-        # This ensures the GeoServer container can read the file.
-        # os.chmod(dest_path, 0o644)
+
+        logger.info(f"Copy complete.") 
         
     except Exception as e:
         error_msg = f"Failed to copy file to rclone mount: {e}"

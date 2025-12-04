@@ -125,19 +125,19 @@ def get_exclude_first(files):
         exclude_first = False
     return exclude_first
 
-def merge(files):
+def merge(files, output_path):
     # Merges PNGs and saves the output to the specified mosaic_image path.
     # Using gdal.Warp instead of gdal_merge.main ensures better compatibility 
     # between different GDAL versions (e.g., 3.0 vs 3.8) and offers better performance.
     file_count = len(files)
-    output_name = os.path.basename(mosaic_image)
+    output_name = os.path.basename(output_path)
     msg = f"Merging {file_count} input files into: {output_name}..."
     logger.info(msg)
     print(msg)
 
     try:
         gdal.Warp(
-            mosaic_image,       # Output file path
+            output_path,       # Output file path
             files,              # List of input files
             format="GTiff",
             srcNodata=0,        # Equivalent to -n 0
@@ -152,7 +152,7 @@ def merge(files):
         raise
 
     # Assign the projection (EPSG:28350) to the output image
-    gdal_edit_args = ["", "-a_srs", "EPSG:28350", mosaic_image]
+    gdal_edit_args = ["", "-a_srs", "EPSG:28350", output_path]
     # gdal_edit_args = ["", "-a_srs", "EPSG:4326", mosaic_image]
     gdal_edit.main(gdal_edit_args)
 
@@ -514,7 +514,7 @@ else:
         logger.info(">>> Step 1/8: Creating Mosaic Image (gdal.Warp)...")
         print(">>> Step 1/8: Creating Mosaic Image...")
 
-        merge(files)
+        merge(files, mosaic_image)
         msg += "\nMosaic produced OK"
         print("Mosaic produced OK")
         logger.info("Mosaic produced OK")

@@ -420,26 +420,29 @@ def publish_image_on_geoserver(flight_name, image_name=None):
     except Exception as e:
         logger.error(f"Exception during Coverage Store creation: {e}", exc_info=True)
         print(f"Exception: {e}")
-
+    
     if image_name is None:
-        layer_data = '<coverage><name>{flight_name}</name><title>{flight_name}</title><srs>EPSG:28350</srs></coverage>'.format(flight_name=flight_name)
+        target_layer_name = flight_name
     else:
-        layer_data = '<coverage><name>{flight_timestamp}_img_{image}</name><title>{flight_timestamp}_img_{image}</title><srs>EPSG:28350</srs></coverage>'.format(flight_timestamp=flight_timestamp, image=image_name[:-4])
+        # e.g. 20231214_..._img_00001
+        target_layer_name = f"{flight_timestamp}_img_{image_name[:-4]}"
+
+    layer_data = f'<coverage><name>{target_layer_name}</name><title>{target_layer_name}</title><srs>EPSG:28350</srs></coverage>'
 
     # --- Create/Publish Layer ---
     try:
         response = requests.post(gs_layer_url, headers=headers, data=layer_data, auth=(user, gs_pwd))
 
         if response.status_code == 201:
-            success_message = 'Great success! Layer published on GeoServer.'
+            success_message = f'Great success! Layer published on GeoServer: {target_layer_name}.'
             logger.info(success_message)
             print(success_message)
         elif response.status_code == 500 and "already exists" in response.text:
-            success_message = 'Layer already exists on GeoServer (Status 500). Skipping.'
+            success_message = f'Layer already exists on GeoServer (Status 500). Skipping: {target_layer_name}.'
             logger.info(success_message)
             print(success_message)
         else:
-            error_msg = f"Error GeoServer Layer Publish. Status: {response.status_code}"
+            error_msg = f"Error GeoServer Layer Publish for {target_layer_name}. Status: {response.status_code}"
             logger.error(error_msg)
             logger.error(f"Response: {response.text}")
             print(error_msg)

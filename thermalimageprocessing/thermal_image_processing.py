@@ -571,6 +571,11 @@ def run_thermal_processing(flight_path_arg):
     start_msg = f"=== STARTING PROCESSING FOR: {flight_name} ==="
     logger.info(start_msg)
 
+    # These variables will act as a "scoreboard" to track the final outcome.
+    success = True  # We start by assuming the process will be successful.
+    msg = ""        # This will accumulate messages for the success email.
+    error_details = "" # This will store the specific error for the failure email.
+
     logger.info(f"Looking for KML in: {kml_boundaries_folder}")
     if os.path.exists(kml_boundaries_folder):
         for filename in os.listdir(kml_boundaries_folder):

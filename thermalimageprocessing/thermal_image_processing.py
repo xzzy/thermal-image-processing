@@ -658,48 +658,38 @@ def run_thermal_processing(flight_path_arg):
             msg += "\nBoundaries and centroids creation and push to PostGIS OK"
             logger.info("Boundaries and centroids creation and push to PostGIS OK")
 
-        try:
-            # --- Log: Image Conversion ---
-            count = len(all_images_with_hotspots)
-            logger.info(f">>> Step 7/8: Converting {count} Hotspot Images (PNG to TIF)...")
-            
-            if len(all_images_with_hotspots) > 0:
-                for img in all_images_with_hotspots:
-                    full_path = os.path.join(raw_img_folder, img)
-                    translate_png2tif(full_path, img, flight_name)
-                success_msg = "Production of tif images OK"
-                msg += "\n" + success_msg
-                logger.info(success_msg)
-        except Exception as e:
-            msg += "\nProduction of tif images failed"
-            error_detail = f"Production of tif images failed: {e}"
-            logger.error(error_detail) 
+        # --- Log: Image Conversion ---
+        count = len(all_images_with_hotspots)
+        logger.info(f">>> Step 7/8: Converting {count} Hotspot Images (PNG to TIF)...")
+        if len(all_images_with_hotspots) > 0:
+            for img in all_images_with_hotspots:
+                full_path = os.path.join(raw_img_folder, img)
+                translate_png2tif(full_path, img, flight_name)
+            msg += "\nProduction of tif images OK"
+            logger.info("\nProduction of tif images OK")
 
         # Wait for storage sync
         time.sleep(60)
 
-        try:
-            # --- Log: GeoServer Publishing ---
-            logger.info(">>> Step 8/8: Publishing to GeoServer...")
-            
-            if mosaic_stored_ok:
-                publish_image_on_geoserver(flight_name)
-                success_msg = "Mosaic published on geoserver OK"
-                msg += "\n" + success_msg
-                logger.info(success_msg)
-            else:
-                error_message = "Mosaic could not be published on geoserver!!!"
-                msg += "\n" + error_message
-                logger.info(error_message)
+        # --- Log: GeoServer Publishing ---
+        logger.info(">>> Step 8/8: Publishing to GeoServer...")
+        if mosaic_stored_ok:
+            publish_image_on_geoserver(flight_name)
+            msg += "\nMosaic published on geoserver OK"
+            logger.info("Mosaic published on geoserver OK")
+        else:
+            # This is not an exception, but a known non-critical issue.
+            # We log it and add it to the message, but let the process continue.
+            msg += "\nWarning: Mosaic was not stored, so it could not be published on geoserver."
+            logger.warning("Mosaic was not stored, so it could not be published on geoserver.")
 
-            for img in all_images_with_hotspots:
-                img = img.replace(".png", ".tif")
-                publish_image_on_geoserver(flight_name, img)
-        except Exception as e:
-            success = False
-            msg += "\nMosaic publishing on geoserver failed"
-            error_detail = f"Mosaic publishing on geoserver failed: {e}"
-            logger.error(error_detail) 
+        for img in all_images_with_hotspots:
+            img = img.replace(".png", ".tif")
+            publish_image_on_geoserver(flight_name, img)
+
+        if all_images_with_hotspots:
+            msg += f"\nPublished {len(all_images_with_hotspots)} individual hotspot images to geoserver OK."
+            logger.info(f"Published {len(all_images_with_hotspots)} individual hotspot images to geoserver OK.")
 
         # --- Log: Finish ---
         end_msg = f"=== FINISHED PROCESSING FOR: {flight_name} ==="

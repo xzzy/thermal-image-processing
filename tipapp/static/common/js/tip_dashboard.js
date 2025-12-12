@@ -295,15 +295,15 @@ var tip_dashboard = {
       success: function (res, status, xhr) {
         if (cb_success) cb_success(res, status, xhr);
       },
-      error: function (e) {
+      error: function (jqXHR, textStatus, errorThrown) {
         if (jqXHR.status === 200) {
             if (cb_success) cb_success(jqXHR.response, textStatus, jqXHR);
             return;
         }
 
         const _ = tip_dashboard;
-        _.downloadFinished(e);
-        if (cb_error) cb_error(e);
+        _.downloadFinished(jqXHR);
+        if (cb_error) cb_error(jqXHR, textStatus, errorThrown);
       },
       xhr: function () {
         var xhr = new window.XMLHttpRequest();

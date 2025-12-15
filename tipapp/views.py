@@ -4,6 +4,7 @@
 # Third-Party
 import os
 import logging
+import io
 
 from django import http
 from django import shortcuts
@@ -12,6 +13,10 @@ from django.views.generic import base
 from django.contrib import auth
 from django.core.paginator import Paginator
 from rest_framework.decorators import permission_classes, api_view
+from contextlib import redirect_stdout
+from django.core.management import call_command
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 
 # Internal
@@ -256,3 +261,43 @@ def api_download_thermal_file_or_folder(request, *args, **kwargs):
         else:
             logger.warning(f"File or folder not found at path: {file_path}")
         return JsonResponse({'error': 'File or folder not found.'}, status=400)
+
+
+def is_staff_user(user):
+    return user.is_staff
+
+
+@login_required
+@user_passes_test(is_staff_user)
+@require_POST
+def trigger_long_running_command_view(request):
+    """
+    Directly runs a long-running management command and waits for it to complete.
+    Designed for admin users who are aware of the long wait time.
+    """
+    try:
+        # Create an in-memory text buffer to capture the output (print statements) of the management command.
+        command_output_buffer = io.StringIO()
+
+        # Use a context manager to temporarily redirect all standard output (stdout) to the in-memory buffer.
+        with redirect_stdout(command_output_buffer):
+            # Execute management command
+            call_command('process_imported_files_command')
+        
+        # Get the entire captured output as a string.
+        command_output = command_output_buffer.getvalue()
+
+        # Return a successful response
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Command executed successfully.',
+            'output': command_output
+        })
+
+    except Exception as e:
+        logger.error(f"Error running management command: {e}", exc_info=True)
+        
+        return JsonResponse({
+            'status': 'error',
+            'message': f'The command failed with an error: {str(e)}'
+        }, status=500)

@@ -51,8 +51,6 @@ class ThermalProcessingEmailSender:
         recipients = self._get_recipient_list()
         
         if not recipients:
-            # You might want to log this as a warning
-            # logger.warning("NOTIFICATION_RECIPIENTS is not set. Email not sent.")
             logging.warning("WARNING: NOTIFICATION_RECIPIENTS is not set. Email not sent.")
             return
 

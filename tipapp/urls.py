@@ -56,7 +56,7 @@ urlpatterns = [
     # Django Administration
     urls.path("admin/", admin.site.urls),
 
-
+    urls.path('api/trigger-long-command/', views.trigger_long_running_command_view, name='trigger_long_command'),
 ]
 
 # DBCA Template URLs

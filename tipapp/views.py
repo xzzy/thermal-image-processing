@@ -301,3 +301,18 @@ def trigger_long_running_command_view(request):
             'status': 'error',
             'message': f'The command failed with an error: {str(e)}'
         }, status=500)
+
+
+@login_required
+@user_passes_test(is_staff_user)
+def management_command_runner_page_view(request):
+    """
+    Renders the HTML page that contains the button to run the management command.
+    Its only job is to display the template.
+    """
+    template_name = "govapp/management_command_runner.html"
+    context = {
+        'page_title': 'Management Command Runner'
+    }
+    
+    return shortcuts.render(request, template_name, context)

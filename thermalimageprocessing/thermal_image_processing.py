@@ -41,9 +41,6 @@ gdal.SetConfigOption('OGR_GEOMETRY_ACCEPT_UNCLOSED_RING', 'YES')
 input_image_file_ext = ".png"
 output_image_file_ext = ".tif"
 
-source_folder = os.environ.get('thermal_source_folder')
-dest_folder = os.environ.get('thermal_destination_folder')
-
 raw_url = decouple.config("general_postgis_table", default="NO DATABASE URL FOUND FOR THERMAL IMAGE PROCESSING.")
 if raw_url:
     # SQLAlchemy requires 'postgresql://' protocol, but Django often uses 'postgis://'.

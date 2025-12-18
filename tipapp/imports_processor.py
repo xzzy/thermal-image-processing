@@ -63,7 +63,7 @@ class ImportsProcessor():
                         # 1. Unzip and Prepare (Replaces shell script logic)
                         # entry.path: The full path to the pending .7z file
                         # dest_path: Where to move the original .7z file after extraction
-                        processed_dir_path = unzip_and_prepare(entry.path, dest_path)
+                        processed_dir_path = unzip_and_prepare(entry.path)
                         
                         logger.info(f"Unzipped and prepared at: {processed_dir_path}")
                         

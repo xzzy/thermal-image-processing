@@ -20,6 +20,7 @@ from sqlalchemy import create_engine
 from postmarker.core import PostmarkClient
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from shapely.geometry import shape, mapping
+from tipapp import settings
 from tipapp.emails import ThermalProcessingEmailSender
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -454,13 +455,13 @@ def publish_image_on_geoserver(flight_name, image_name=None):
         error_msg = f"Exception during Layer publication: {e}"
         logger.error(error_msg, exc_info=True)
 
-def unzip_and_prepare(full_filename_path, uploads_folder_path):
+def unzip_and_prepare(full_filename_path):
     """
     Handles file preparation: copying, moving, and unzipping.
     Replaces the functionality of the shell script.
     """
     # Get the base directory of the project
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     filename = os.path.basename(full_filename_path)
     
@@ -473,7 +474,9 @@ def unzip_and_prepare(full_filename_path, uploads_folder_path):
     logger.info(f"Target directory name: {dirname}")
 
     # Define processing directory
-    processing_base_folder = os.path.join(base_dir, 'thermal_data_processing')
+    # processing_base_folder = os.path.join(base_dir, 'thermal_data_processing')
+    processing_base_folder = settings.DATA_STORAGE
+
     if not os.path.exists(processing_base_folder):
         os.makedirs(processing_base_folder)
 
@@ -486,14 +489,14 @@ def unzip_and_prepare(full_filename_path, uploads_folder_path):
 
     # 2. Move original file to uploads history folder
     # Ensure uploads_folder_path is absolute
-    if not os.path.isabs(uploads_folder_path):
-        uploads_folder_path = os.path.join(base_dir, uploads_folder_path)
+    # if not os.path.isabs(uploads_folder_path):
+    #     uploads_folder_path = os.path.join(base_dir, uploads_folder_path)
     
-    dest_move_path = os.path.join(uploads_folder_path, filename)
-    logger.info(f"Moving original file to {dest_move_path}")
-    
-    if not os.path.exists(uploads_folder_path):
-         os.makedirs(uploads_folder_path, exist_ok=True)
+    dest_move_path = os.path.join(settings.UPLOADS_HISTORY_PATH, filename)
+    logger.info(f"Moving original file to {dest_move_path}")    
+
+    if not os.path.exists(settings.UPLOADS_HISTORY_PATH):
+         os.makedirs(settings.UPLOADS_HISTORY_PATH, exist_ok=True)
          
     shutil.move(full_filename_path, dest_move_path)
 

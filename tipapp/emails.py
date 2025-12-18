@@ -1,5 +1,5 @@
 from django.conf import settings
-from wagov_utils.components.utils.emails import TemplateEmailBase
+from wagov_utils.components.utils.email import TemplateEmailBase
 import logging
 
 logger = logging.getLogger(__name__)
